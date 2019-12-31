@@ -60,6 +60,59 @@ VOID WeFormatLocalObjectName(
     }
 }
 
+/*PPH_STRING WeeGetUserObjectName(_In_ HANDLE hObj)
+{
+    DWORD nameLen;
+    if (!GetUserObjectInformation(hObj, UOI_NAME, NULL, 0, &nameLen) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        return NULL;
+    PPH_STRING name;
+    name = PhCreateStringEx(NULL, nameLen - sizeof(UNICODE_NULL));
+    if (!GetUserObjectInformation(hObj, UOI_NAME, PhGetString(name), nameLen, &nameLen) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    {
+        PhDereferenceObject(name);
+        return NULL;
+    }
+    return name;
+}*/
+
+NTSTATUS WeeGetObjectName(_In_ HANDLE hObj, _Out_ PPH_STRING* ObjectName)
+{
+    POBJECT_NAME_INFORMATION buffer;
+    ULONG bufferSize;
+    bufferSize = 0x200;
+    buffer = PhAllocate(bufferSize);
+    NTSTATUS status = NtQueryObject(
+        hObj,
+        ObjectNameInformation,
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_INFO_LENGTH_MISMATCH ||
+        status == STATUS_BUFFER_TOO_SMALL)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+        status = NtQueryObject(
+            hObj,
+            ObjectNameInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+        );
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *ObjectName = PhCreateStringFromUnicodeString(&buffer->Name);
+    }
+
+    PhFree(buffer);
+
+    return status;
+}
+
 VOID WeInvertWindowBorder(
     _In_ HWND hWnd
     )

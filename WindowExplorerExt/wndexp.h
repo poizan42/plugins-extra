@@ -81,6 +81,9 @@ PVOID WeGetProcedureAddress(
     _In_ PSTR Name
     );
 
+NTSTATUS WeeGetObjectName(_In_ HANDLE hObj, _Out_ PPH_STRING* ObjectName);
+//PPH_STRING WeeGetUserObjectName(_In_ HANDLE hObj);
+
 VOID WeInvertWindowBorder(
     _In_ HWND hWnd
     );
