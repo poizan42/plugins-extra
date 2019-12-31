@@ -47,7 +47,7 @@ typedef struct _WEE_WINSTA_NODE
 struct _WEE_DESKTOP_NODE;
 typedef struct _WEE_DESKTOP_NODE WEE_DESKTOP_NODE, * PWEE_DESKTOP_NODE;
 
-typedef struct _WE_WINDOW_NODE
+typedef struct _WEE_WINDOW_NODE
 {
     WEE_BASE_NODE BaseNode;
     ULONG SessionId;
@@ -62,11 +62,11 @@ typedef struct _WE_WINDOW_NODE
     WCHAR WindowHandleString[PH_PTR_STR_LEN_1];
     PPH_STRING ThreadString;
     PPH_STRING ModuleString;
-} WE_WINDOW_NODE, *PWE_WINDOW_NODE;
+} WEE_WINDOW_NODE, *PWEE_WINDOW_NODE;
 
 struct _WEE_DESKTOP_NODE
 {
-    WE_WINDOW_NODE RootWindowNode;
+    WEE_WINDOW_NODE RootWindowNode;
     PPH_STRING FirstColumnText;
     ULONG FirstColumnId;
     //PPH_STRING DesktopName;
@@ -116,7 +116,7 @@ PWEE_DESKTOP_NODE WeeAddDesktopNode(
     _In_ PPH_STRING DesktopName
 );
 
-PWE_WINDOW_NODE WeeAddWindowNode(
+PWEE_WINDOW_NODE WeeAddWindowNode(
     _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_ HANDLE WindowHandle,
     _In_ DWORD SessionId,
@@ -124,7 +124,7 @@ PWE_WINDOW_NODE WeeAddWindowNode(
     _In_ PPH_STRING DesktopName
 );
 
-PWE_WINDOW_NODE WeFindWindowNode(
+PWEE_WINDOW_NODE WeFindWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_ HWND WindowHandle
     );
@@ -142,7 +142,7 @@ PWEE_BASE_NODE WeeGetSelectedBaseNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context
     );
 
-PWE_WINDOW_NODE WeeGetSelectedWindowNode(
+PWEE_WINDOW_NODE WeeGetSelectedWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context
     );
 
@@ -154,7 +154,7 @@ VOID WeeGetSelectedBaseNodes(
 
 VOID WeeGetSelectedWindowNodes(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
-    _Out_ PWE_WINDOW_NODE **Nodes,
+    _Out_ PWEE_WINDOW_NODE **Nodes,
     _Out_ PULONG NumberOfWindows
     );
 

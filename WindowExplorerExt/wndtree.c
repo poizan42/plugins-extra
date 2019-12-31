@@ -87,7 +87,7 @@ BOOLEAN WeWindowTreeFilterCallback(
     )
 {
     PWE_WINDOW_TREE_CONTEXT context = Context;
-    PWE_WINDOW_NODE windowNode = (PWE_WINDOW_NODE)Node;
+    PWEE_WINDOW_NODE windowNode = (PWEE_WINDOW_NODE)Node;
 
     if (!context)
         return FALSE;
@@ -140,7 +140,7 @@ VOID WeeInitializeWindowTree(
     memset(Context, 0, sizeof(WE_WINDOW_TREE_CONTEXT));
 
     Context->NodeHashtable = PhCreateHashtable(
-        sizeof(PWE_WINDOW_NODE),
+        sizeof(PWEE_WINDOW_NODE),
         WeepBaseNodeHashtableEqualFunction,
         WeepBaseNodeHashtableHashFunction,
         100
@@ -219,7 +219,7 @@ BOOLEAN WeepBaseNodeHashtableEqualFunction(
         return FALSE;
 
     PWEE_WINSTA_NODE winstaNode1, winstaNode2;
-    PWE_WINDOW_NODE windowNode1, windowNode2;
+    PWEE_WINDOW_NODE windowNode1, windowNode2;
 
     switch (node1->Kind)
     {
@@ -231,8 +231,8 @@ BOOLEAN WeepBaseNodeHashtableEqualFunction(
         return PhEqualString(winstaNode1->WinStationName, winstaNode2->WinStationName, FALSE);
     case WEENKND_DESKTOP:
     case WEENKND_WINDOW:
-        windowNode1 = (PWE_WINDOW_NODE)node1;
-        windowNode2 = (PWE_WINDOW_NODE)node2;
+        windowNode1 = (PWEE_WINDOW_NODE)node1;
+        windowNode2 = (PWEE_WINDOW_NODE)node2;
         return windowNode1->SessionId == windowNode2->SessionId &&
             windowNode1->WindowHandle == windowNode2->WindowHandle &&
             PhEqualString(windowNode1->WinStationName, windowNode2->WinStationName, FALSE) &&
@@ -247,7 +247,7 @@ ULONG WeepBaseNodeHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    PWE_WINDOW_NODE wndNode;
+    PWEE_WINDOW_NODE wndNode;
     PWEE_WINSTA_NODE winstaNode;
     PWEE_SESSION_NODE sessionNode;
     PWEE_BASE_NODE node = *(PWEE_BASE_NODE*)Entry;
@@ -261,7 +261,7 @@ ULONG WeepBaseNodeHashtableHashFunction(
         return PhHashStringRef(&winstaNode->WinStationName->sr, FALSE);
     case WEENKND_DESKTOP:
     case WEENKND_WINDOW:
-        wndNode = (PWE_WINDOW_NODE)node;
+        wndNode = (PWEE_WINDOW_NODE)node;
         return PhHashQuadruple(PhHashIntPtr((ULONG_PTR)wndNode->WindowHandle), PhHashStringRef(&wndNode->DesktopName->sr, FALSE),
             PhHashStringRef(&wndNode->WinStationName->sr, FALSE), PhHashInt32(wndNode->SessionId));
     default:
@@ -286,7 +286,7 @@ PWEE_BASE_NODE WeepAllocBaseNode(
         nodeSize = sizeof(WEE_DESKTOP_NODE);
         break;
     case WEENKND_WINDOW:
-        nodeSize = sizeof(WE_WINDOW_NODE);
+        nodeSize = sizeof(WEE_WINDOW_NODE);
         break;
     default:
         return NULL;
@@ -341,7 +341,7 @@ PWEE_WINSTA_NODE WeeAddWinStaNode(
     return winstaNode;
 }
 
-PWE_WINDOW_NODE WeepAddWindowOrDesktopNode(
+PWEE_WINDOW_NODE WeepAddWindowOrDesktopNode(
     _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_ HANDLE WindowHandle,
     _In_ DWORD SessionId,
@@ -350,7 +350,7 @@ PWE_WINDOW_NODE WeepAddWindowOrDesktopNode(
     _In_ WEE_NODE_KIND nodeKind
 )
 {
-    PWE_WINDOW_NODE windowNode = (PWE_WINDOW_NODE)WeepAllocBaseNode(Context, nodeKind);
+    PWEE_WINDOW_NODE windowNode = (PWEE_WINDOW_NODE)WeepAllocBaseNode(Context, nodeKind);
 
     windowNode->WindowHandle = WindowHandle;
     windowNode->SessionId = SessionId;
@@ -384,7 +384,7 @@ PWEE_DESKTOP_NODE WeeAddDesktopNode(
     return deskNode;
 }
 
-PWE_WINDOW_NODE WeeAddWindowNode(
+PWEE_WINDOW_NODE WeeAddWindowNode(
     _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_ HANDLE WindowHandle,
     _In_ DWORD SessionId,
@@ -396,18 +396,18 @@ PWE_WINDOW_NODE WeeAddWindowNode(
         Context, WindowHandle, SessionId, WinStaName, DesktopName, WEENKND_WINDOW);
 }
 
-PWE_WINDOW_NODE WeFindWindowNode(
+PWEE_WINDOW_NODE WeFindWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_ HWND WindowHandle
     )
 {
-    WE_WINDOW_NODE lookupWindowNode;
-    PWE_WINDOW_NODE lookupWindowNodePtr = &lookupWindowNode;
-    PWE_WINDOW_NODE *windowNode;
+    WEE_WINDOW_NODE lookupWindowNode;
+    PWEE_WINDOW_NODE lookupWindowNodePtr = &lookupWindowNode;
+    PWEE_WINDOW_NODE *windowNode;
 
     lookupWindowNode.WindowHandle = WindowHandle;
 
-    windowNode = (PWE_WINDOW_NODE *)PhFindEntryHashtable(
+    windowNode = (PWEE_WINDOW_NODE *)PhFindEntryHashtable(
         Context->NodeHashtable,
         &lookupWindowNodePtr
         );
@@ -464,7 +464,7 @@ VOID WepDestroyBaseNode(
     // Fallthrough
     case WEENKND_WINDOW:
         {
-            PWE_WINDOW_NODE windowNode = (PWE_WINDOW_NODE)Node;
+            PWEE_WINDOW_NODE windowNode = (PWEE_WINDOW_NODE)Node;
             if (windowNode->WindowText) PhDereferenceObject(windowNode->WindowText);
             if (windowNode->ThreadString) PhDereferenceObject(windowNode->ThreadString);
             if (windowNode->ModuleString) PhDereferenceObject(windowNode->ModuleString);
@@ -483,8 +483,8 @@ VOID WepDestroyBaseNode(
     _In_ const void *_elem2 \
     ) \
 { \
-    PWE_WINDOW_NODE node1 = *(PWE_WINDOW_NODE *)_elem1; \
-    PWE_WINDOW_NODE node2 = *(PWE_WINDOW_NODE *)_elem2; \
+    PWEE_WINDOW_NODE node1 = *(PWEE_WINDOW_NODE *)_elem1; \
+    PWEE_WINDOW_NODE node2 = *(PWEE_WINDOW_NODE *)_elem2; \
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
@@ -534,7 +534,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
 {
     PWE_WINDOW_TREE_CONTEXT context;
     PWEE_BASE_NODE node;
-    PWE_WINDOW_NODE wndNode;
+    PWEE_WINDOW_NODE wndNode;
 
     context = Context;
 
@@ -638,7 +638,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                 break;
             case WEENKND_DESKTOP:
             case WEENKND_WINDOW:
-                wndNode = (PWE_WINDOW_NODE)node;
+                wndNode = (PWEE_WINDOW_NODE)node;
                 switch (getCellText->Id)
                 {
                 case WEWNTLC_CLASS:
@@ -769,13 +769,13 @@ VOID WeClearWindowTree(
     PhClearList(Context->NodeRootList);
 }
 
-PWE_WINDOW_NODE WeeGetSelectedWindowNode(
+PWEE_WINDOW_NODE WeeGetSelectedWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context
     )
 {
     PWEE_BASE_NODE node = WeeGetSelectedBaseNode(Context);
     return node && (node->Kind == WEENKND_WINDOW || node->Kind == WEENKND_DESKTOP) ?
-        (PWE_WINDOW_NODE)node :
+        (PWEE_WINDOW_NODE)node :
         NULL;
 }
 
@@ -800,7 +800,7 @@ PWEE_BASE_NODE WeeGetSelectedBaseNode(
 
 VOID WeeGetSelectedWindowNodes(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
-    _Out_ PWE_WINDOW_NODE **Nodes,
+    _Out_ PWEE_WINDOW_NODE **Nodes,
     _Out_ PULONG NumberOfWindows
     )
 {

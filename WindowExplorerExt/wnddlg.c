@@ -163,7 +163,7 @@ VOID WepDeleteWindowSelector(
 
 VOID WepFillWindowInfo(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ PWE_WINDOW_NODE Node
+    _In_ PWEE_WINDOW_NODE Node
     )
 {
     PPH_STRING windowText;
@@ -222,7 +222,7 @@ VOID WepFillWindowInfo(
         Node->BaseNode.Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &Node->BaseNode.Node);
 }
 
-PWE_WINDOW_NODE WeepAddChildWindowNode(
+PWEE_WINDOW_NODE WeepAddChildWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_opt_ PWEE_BASE_NODE ParentNode,
     _In_ HWND WindowHandle,
@@ -232,7 +232,7 @@ PWE_WINDOW_NODE WeepAddChildWindowNode(
 
     )
 {
-    PWE_WINDOW_NODE childNode;
+    PWEE_WINDOW_NODE childNode;
 
     childNode = WeeAddWindowNode(Context, WindowHandle, SessionId, WinStaName, DesktopName);
 
@@ -259,7 +259,7 @@ PWE_WINDOW_NODE WeepAddChildWindowNode(
 
 VOID WeepAddChildWindows(
     _In_ PWINDOWS_CONTEXT Context,
-    _In_opt_ PWE_WINDOW_NODE ParentNode,
+    _In_opt_ PWEE_WINDOW_NODE ParentNode,
     _In_ HWND WindowHandle,
     _In_ DWORD SessionId,
     _In_ PPH_STRING WinStaName,
@@ -285,7 +285,7 @@ VOID WeepAddChildWindows(
             (!FilterThreadId || UlongToHandle(threadId) == FilterThreadId)
             )
         {
-            PWE_WINDOW_NODE childNode = WeepAddChildWindowNode(&Context->TreeContext, (PWEE_BASE_NODE)ParentNode, childWindow, SessionId, WinStaName, DesktopName);
+            PWEE_WINDOW_NODE childNode = WeepAddChildWindowNode(&Context->TreeContext, (PWEE_BASE_NODE)ParentNode, childWindow, SessionId, WinStaName, DesktopName);
 
             if (childNode->BaseNode.Flags & WEENFLG_HAS_CHILDREN)
             {
@@ -341,7 +341,7 @@ VOID WepRefreshWindows(
     {
     case WeWindowSelectorAll:
         {
-            PWE_WINDOW_NODE desktopNode;
+            PWEE_WINDOW_NODE desktopNode;
             HDESK desktop = GetThreadDesktop(GetCurrentThreadId());
             PPH_STRING desktopName;
             if (!NT_SUCCESS(WeeGetObjectName(desktop, &desktopName)))
@@ -357,7 +357,7 @@ VOID WepRefreshWindows(
             PhAddItemList(sessionNode->BaseNode.Children, winstaNode);
             sessionNode->BaseNode.Node.Expanded = TRUE;
 
-            desktopNode = (PWE_WINDOW_NODE)WeeAddDesktopNode(&Context->TreeContext, GetDesktopWindow(), sessionId, winStaName, desktopName);
+            desktopNode = (PWEE_WINDOW_NODE)WeeAddDesktopNode(&Context->TreeContext, GetDesktopWindow(), sessionId, winStaName, desktopName);
             WepFillWindowInfo(&Context->TreeContext, desktopNode);
 
             desktopNode->BaseNode.Parent = &winstaNode->BaseNode;
@@ -562,7 +562,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             case ID_SHOWCONTEXTMENU:
                 {
                     PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
-                    PWE_WINDOW_NODE *windows;
+                    PWEE_WINDOW_NODE *windows;
                     ULONG numberOfWindows;
                     PPH_EMENU menu;
                     PPH_EMENU_ITEM selectedItem;
@@ -679,7 +679,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_BRINGTOFRONT:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -699,7 +699,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_RESTORE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -709,7 +709,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_MINIMIZE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -719,7 +719,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_MAXIMIZE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -729,7 +729,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_CLOSE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -739,7 +739,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_VISIBLE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -761,7 +761,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_ENABLED:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -771,7 +771,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_ALWAYSONTOP:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -794,7 +794,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             case ID_OPACITY_90:
             case ID_OPACITY_OPAQUE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -819,7 +819,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_HIGHLIGHT:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -837,7 +837,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_GOTOTHREAD:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
                     PPH_PROCESS_ITEM processItem;
                     PPH_PROCESS_PROPCONTEXT propContext;
 
@@ -863,7 +863,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_PROPERTIES:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                         WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle);
@@ -1004,7 +1004,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
             case ID_SHOWCONTEXTMENU:
                 {
                     PPH_TREENEW_CONTEXT_MENU contextMenuEvent = (PPH_TREENEW_CONTEXT_MENU)lParam;
-                    PWE_WINDOW_NODE *windows;
+                    PWEE_WINDOW_NODE *windows;
                     ULONG numberOfWindows;
                     PPH_EMENU menu;
                     PPH_EMENU selectedItem;
@@ -1121,7 +1121,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_BRINGTOFRONT:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -1138,7 +1138,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_RESTORE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -1148,7 +1148,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_MINIMIZE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -1158,7 +1158,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_MAXIMIZE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -1168,7 +1168,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_CLOSE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -1178,7 +1178,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_VISIBLE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -1200,7 +1200,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_ENABLED:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -1210,7 +1210,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_ALWAYSONTOP:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -1233,7 +1233,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
             case ID_OPACITY_90:
             case ID_OPACITY_OPAQUE:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -1258,7 +1258,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_HIGHLIGHT:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                     {
@@ -1276,7 +1276,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_GOTOTHREAD:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
                     PPH_PROCESS_ITEM processItem;
                     PPH_PROCESS_PROPCONTEXT propContext;
 
@@ -1302,7 +1302,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
                 break;
             case ID_WINDOW_PROPERTIES:
                 {
-                    PWE_WINDOW_NODE selectedNode;
+                    PWEE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeeGetSelectedWindowNode(&context->TreeContext))
                         WeShowWindowProperties(hwndDlg, selectedNode->WindowHandle);
