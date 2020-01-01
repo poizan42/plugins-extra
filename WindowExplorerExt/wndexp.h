@@ -98,4 +98,14 @@ VOID WeInvertWindowBorder(
     _In_ HWND hWnd
     );
 
+FORCEINLINE
+ULONG
+WeeHashPair(
+    _In_ ULONG Value1,
+    _In_ ULONG Value2
+)
+{
+    return PhHashInt64(((ULONG64)Value1 << 32) | Value2);
+}
+
 #endif

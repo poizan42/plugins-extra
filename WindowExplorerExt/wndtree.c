@@ -262,8 +262,8 @@ ULONG WeepBaseNodeHashtableHashFunction(
     case WEENKND_DESKTOP:
     case WEENKND_WINDOW:
         wndNode = (PWEE_WINDOW_NODE)node;
-        return PhHashQuadruple(PhHashIntPtr((ULONG_PTR)wndNode->WindowHandle), PhHashStringRef(&wndNode->DesktopName->sr, FALSE),
-            PhHashStringRef(&wndNode->WinStationName->sr, FALSE), PhHashInt32(wndNode->SessionId));
+        return WeeHashPair(PhHashIntPtr((ULONG_PTR)wndNode->WindowHandle),
+            PhHashStringRef(&wndNode->WinStationName->sr, FALSE));
     default:
         return 0;
     }
