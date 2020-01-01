@@ -110,7 +110,7 @@ PWEE_WINSTA_NODE WeeAddWinStaNode(
 
 PWEE_DESKTOP_NODE WeeAddDesktopNode(
     _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ HANDLE WindowHandle,
+    _In_opt_ HANDLE WindowHandle,
     _In_ DWORD SessionId,
     _In_ PPH_STRING WinStaName,
     _In_ PPH_STRING DesktopName

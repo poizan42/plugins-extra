@@ -34,12 +34,21 @@ PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 
+
+HDESK WeeCurrentDesktop;
+PPH_STRING WeeCurrentDesktopName;
+HWINSTA WeeCurrentWindowStation;
+PPH_STRING WeeCurrentWindowStationName;
+
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     )
 {
-    NOTHING;
+    WeeCurrentDesktop = GetThreadDesktop(GetCurrentThreadId());
+    WeeRefEnsureObjectName(WeeCurrentDesktop, &WeeCurrentDesktopName);
+    WeeCurrentWindowStation = GetProcessWindowStation();
+    WeeRefEnsureObjectName(WeeCurrentWindowStation, &WeeCurrentWindowStationName);
 }
 
 VOID NTAPI UnloadCallback(
@@ -47,17 +56,8 @@ VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Context
     )
 {
-    NOTHING;
-}
-
-static BOOL CALLBACK WepEnumDesktopProc(
-    _In_ LPTSTR lpszDesktop,
-    _In_ LPARAM lParam
-    )
-{
-    PhAddItemList((PPH_LIST)lParam, PhaCreateString(lpszDesktop)->Buffer);
-
-    return TRUE;
+    PhClearReference(&WeeCurrentDesktopName);
+    PhClearReference(&WeeCurrentWindowStationName);
 }
 
 VOID NTAPI MenuItemCallback(

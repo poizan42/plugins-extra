@@ -75,6 +75,33 @@ VOID WeFormatLocalObjectName(
     return name;
 }*/
 
+void WeeRefEnsureObjectName(_In_ HANDLE Object, _Inout_ PPH_STRING* ObjectName)
+{
+    if (*ObjectName)
+    {
+        PhReferenceObject(*ObjectName);
+        return;
+    }
+    if (!NT_SUCCESS(WeeGetObjectName(Object, ObjectName)))
+        *ObjectName = PhCreateString(L"(Unknown)");
+}
+
+void WeeRefEnsureDesktopName(_In_opt_ HDESK Desktop, _Inout_ PPH_STRING* DesktopName)
+{
+    if (*DesktopName && PhGetString(*DesktopName)[0] != '\\')
+    {
+        *DesktopName = PhConcatStrings2(L"\\", PhGetString(*DesktopName));
+    }
+    else if (!Desktop && *DesktopName)
+    {
+        PhReferenceObject(*DesktopName);
+    }
+    else if (Desktop)
+    {
+        WeeRefEnsureObjectName(Desktop, DesktopName);
+    }
+}
+
 NTSTATUS WeeGetObjectName(_In_ HANDLE hObj, _Out_ PPH_STRING* ObjectName)
 {
     POBJECT_NAME_INFORMATION buffer;
@@ -111,6 +138,82 @@ NTSTATUS WeeGetObjectName(_In_ HANDLE hObj, _Out_ PPH_STRING* ObjectName)
     PhFree(buffer);
 
     return status;
+}
+
+PH_STRINGREF WeeGetBareDesktopName(_In_ PPH_STRING DesktopName)
+{
+    PH_STRINGREF desktopNameRef = PhGetStringRef(DesktopName);
+    if (desktopNameRef.Buffer[0] == '\\')
+    {
+        PhSkipStringRef(&desktopNameRef, sizeof(wchar_t));
+    }
+    return desktopNameRef;
+}
+
+PWSTR WeeGetBareDesktopNameZ(_In_ PWSTR DesktopName)
+{
+    if (DesktopName[0] == '\\')
+    {
+        DesktopName++;
+    }
+    return DesktopName;
+}
+
+BOOL WeeCompareDesktopsOnSameWinSta(
+    _In_opt_ HDESK Desktop1,
+    _In_opt_ PWSTR Desktop1Name,
+    _In_opt_ HDESK Desktop2,
+    _In_opt_ PWSTR Desktop2Name)
+{
+    static BOOL(*CompareObjectHandles)(HANDLE hFirstObjectHandle, HANDLE hSecondObjectHandle) = NULL;
+    static BOOL compareObjectHandlesLoaded = FALSE;
+
+    assert(Desktop1 || Desktop1Name);
+    assert(Desktop2 || Desktop2Name);
+
+    if (Desktop1 && Desktop2)
+    {
+        if (!compareObjectHandlesLoaded)
+        {
+            PVOID kernelbaseHandle = PhGetDllHandle(L"Kernelbase.dll");
+            if (kernelbaseHandle)
+            {
+                CompareObjectHandles = PhGetProcedureAddress(kernelbaseHandle, "CompareObjectHandles", 0);
+            }
+            compareObjectHandlesLoaded = TRUE;
+        }
+        if (CompareObjectHandles)
+        {
+            return CompareObjectHandles(Desktop1, Desktop2);
+        }
+    }
+    PWSTR desktop1BareName = NULL, desktop2BareName = NULL;
+    if (Desktop1Name)
+        desktop1BareName = WeeGetBareDesktopNameZ(Desktop1Name);
+    if (Desktop2Name)
+        desktop2BareName = WeeGetBareDesktopNameZ(Desktop2Name);
+    PPH_STRING desktop1Name = NULL, desktop2Name = NULL;
+
+    BOOL ret = FALSE;
+    if (!desktop1BareName)
+    {
+        if (!Desktop1) goto clean;
+        if (!NT_SUCCESS(WeeGetObjectName(Desktop1, &desktop1Name)))
+            goto clean;
+        desktop1BareName = PhGetString(desktop1Name);
+    }
+    if (!desktop2BareName)
+    {
+        if (!Desktop2) goto clean;
+        if (!NT_SUCCESS(WeeGetObjectName(Desktop2, &desktop2Name)))
+            goto clean;
+        desktop2BareName = PhGetString(desktop2Name);
+    }
+    ret = wcscmp(desktop1BareName, desktop2BareName) == 0;
+clean:
+    if (desktop1Name) PhDereferenceObject(desktop1Name);
+    if (desktop2Name) PhDereferenceObject(desktop2Name);
+    return ret;
 }
 
 VOID WeInvertWindowBorder(

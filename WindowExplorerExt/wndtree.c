@@ -343,7 +343,7 @@ PWEE_WINSTA_NODE WeeAddWinStaNode(
 
 PWEE_WINDOW_NODE WeepAddWindowOrDesktopNode(
     _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ HANDLE WindowHandle,
+    _In_opt_ HANDLE WindowHandle,
     _In_ DWORD SessionId,
     _In_ PPH_STRING WinStaName,
     _In_ PPH_STRING DesktopName,
@@ -372,7 +372,7 @@ PWEE_WINDOW_NODE WeepAddWindowOrDesktopNode(
 
 PWEE_DESKTOP_NODE WeeAddDesktopNode(
     _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ HANDLE WindowHandle,
+    _In_opt_ HANDLE WindowHandle,
     _In_ DWORD SessionId,
     _In_ PPH_STRING WinStaName,
     _In_ PPH_STRING DesktopName
@@ -648,13 +648,16 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                     PhInitializeStringRef(&getCellText->Text, wndNode->WindowHandleString);
                     break;
                 case WEWNTLC_TEXT:
-                    getCellText->Text = PhGetStringRef(wndNode->WindowText);
+                    if (wndNode->WindowText)
+                        getCellText->Text = PhGetStringRef(wndNode->WindowText);
                     break;
                 case WEWNTLC_THREAD:
-                    getCellText->Text = PhGetStringRef(wndNode->ThreadString);
+                    if (wndNode->ThreadString)
+                        getCellText->Text = PhGetStringRef(wndNode->ThreadString);
                     break;
                 case WEWNTLC_MODULE:
-                    getCellText->Text = PhGetStringRef(wndNode->ModuleString);
+                    if (wndNode->ModuleString)
+                        getCellText->Text = PhGetStringRef(wndNode->ModuleString);
                     break;
                 default:
                     return FALSE;
@@ -664,13 +667,21 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                     PWEE_DESKTOP_NODE deskNode = (PWEE_DESKTOP_NODE)node;
                     if (deskNode->FirstColumnId != firstColumnId)
                     {
-                        PhMoveReference(&deskNode->FirstColumnText, PhFormatString(L"%ws (Desktop %ws%ws)",
-                            getCellText->Text.Buffer, PhGetString(wndNode->WinStationName), PhGetString(wndNode->DesktopName)));
+                        PPH_STRING newColumnText;
+                        if (getCellText->Text.Length > 0)
+                            newColumnText = PhFormatString(L"%ws (Desktop %ws%ws)",
+                                getCellText->Text.Buffer, PhGetString(wndNode->WinStationName), PhGetString(wndNode->DesktopName));
+                        else
+                            newColumnText = PhFormatString(L"Desktop %ws%ws",
+                                PhGetString(wndNode->WinStationName), PhGetString(wndNode->DesktopName));
+                        
+                        PhMoveReference(&deskNode->FirstColumnText, newColumnText);
                     }
                     getCellText->Text = PhGetStringRef(deskNode->FirstColumnText);
                 }
                 else if (node->Kind == WEENKND_WINDOW)
                 {
+                    // Desktop nodes changes text based on column order, so only cache non-desktop nodes.
                     getCellText->Flags = TN_CACHE;
                 }
 
@@ -774,9 +785,10 @@ PWEE_WINDOW_NODE WeeGetSelectedWindowNode(
     )
 {
     PWEE_BASE_NODE node = WeeGetSelectedBaseNode(Context);
-    return node && (node->Kind == WEENKND_WINDOW || node->Kind == WEENKND_DESKTOP) ?
-        (PWEE_WINDOW_NODE)node :
-        NULL;
+    if (!node || (node->Kind != WEENKND_WINDOW && node->Kind != WEENKND_DESKTOP))
+        return NULL;
+    PWEE_WINDOW_NODE windowNode = (PWEE_WINDOW_NODE)node;
+    return windowNode->WindowHandle ? windowNode : NULL;
 }
 
 PWEE_BASE_NODE WeeGetSelectedBaseNode(
@@ -815,7 +827,9 @@ VOID WeeGetSelectedWindowNodes(
 
         if (node->Node.Selected && node->Kind == WEENKND_WINDOW || node->Kind == WEENKND_DESKTOP)
         {
-            PhAddItemList(list, node);
+            PWEE_WINDOW_NODE windowNode = (PWEE_WINDOW_NODE)node;
+            if (windowNode->WindowHandle)
+                PhAddItemList(list, node);
         }
     }
 

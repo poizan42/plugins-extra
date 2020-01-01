@@ -42,6 +42,7 @@ typedef struct _WINDOWS_ENUM_CONTEXT
     DWORD SessionId;
     PPH_STRING WinStaName;
     PPH_STRING DesktopName;
+    PWEE_BASE_NODE ParentNode;
 } WINDOWS_ENUM_CONTEXT, *PWINDOWS_ENUM_CONTEXT;
 
 INT_PTR CALLBACK WepWindowsDlgProc(
@@ -153,12 +154,13 @@ VOID WepDeleteWindowSelector(
     _In_ PWE_WINDOW_SELECTOR Selector
     )
 {
-    switch (Selector->Type)
+    NOTHING;
+    /*switch (Selector->Type)
     {
     case WeWindowSelectorDesktop:
         PhDereferenceObject(Selector->Desktop.DesktopName);
         break;
-    }
+    }*/
 }
 
 VOID WepFillWindowInfo(
@@ -304,29 +306,130 @@ BOOL CALLBACK WepEnumDesktopWindowsProc(
 {
     PWINDOWS_ENUM_CONTEXT context = (PWINDOWS_ENUM_CONTEXT)lParam;
 
-    WeepAddChildWindowNode(&context->WindowsContext->TreeContext, NULL, hwnd, context->SessionId, context->WinStaName, context->DesktopName);
+    WeepAddChildWindowNode(&context->WindowsContext->TreeContext, context->ParentNode, hwnd, context->SessionId, context->WinStaName, context->DesktopName);
 
     return TRUE;
 }
 
-VOID WepAddDesktopWindows(
+VOID WeepAddDesktopWindows(
     _In_ PWINDOWS_CONTEXT Context,
+    _In_opt_ PWEE_BASE_NODE ParentNode,
+    _In_opt_ HDESK Desktop,
     _In_ DWORD SessionId,
     _In_ PPH_STRING WinStaName,
-    _In_ PPH_STRING DesktopName
+    _In_opt_ PPH_STRING DesktopName
     )
 {
-    HDESK desktopHandle;
+    assert(Desktop || DesktopName);
 
-    if (desktopHandle = OpenDesktop(PhGetString(DesktopName), 0, FALSE, DESKTOP_ENUMERATE))
+    BOOL closeDesktop = FALSE;
+    BOOL refDesktopName = FALSE;
+    if (Desktop && !DesktopName)
     {
-        WINDOWS_ENUM_CONTEXT enumContext;
-        enumContext.WindowsContext = Context;
-        enumContext.SessionId = SessionId;
-        enumContext.WinStaName = WinStaName;
-        enumContext.DesktopName = DesktopName;
-        EnumDesktopWindows(desktopHandle, WepEnumDesktopWindowsProc, (LPARAM)&enumContext);
-        CloseDesktop(desktopHandle);
+        WeeRefEnsureObjectName(Desktop, &DesktopName);
+        refDesktopName = TRUE;
+    }
+    if (!Desktop && DesktopName)
+    {
+        if (!(Desktop = OpenDesktop(WeeGetBareDesktopName(DesktopName).Buffer, 0, FALSE, DESKTOP_ENUMERATE)))
+            return;
+        closeDesktop = TRUE;
+    }
+    
+
+    WINDOWS_ENUM_CONTEXT enumContext = { 0 };
+    enumContext.WindowsContext = Context;
+    enumContext.SessionId = SessionId;
+    enumContext.WinStaName = WinStaName;
+    enumContext.DesktopName = DesktopName;
+    enumContext.ParentNode = ParentNode;
+    EnumDesktopWindows(Desktop, WepEnumDesktopWindowsProc, (LPARAM)&enumContext);
+    if (closeDesktop) CloseDesktop(Desktop);
+    if (DesktopName && refDesktopName) PhDereferenceObject(DesktopName);
+}
+
+WeepAddDesktopWithWindows(
+    _In_ PWINDOWS_CONTEXT Context,
+    _In_ PWEE_BASE_NODE ParentNode,
+    _In_opt_ HDESK Desktop,
+    _In_opt_ HWND DesktopWindow,
+    _In_ DWORD SessionId,
+    _In_ PPH_STRING WindowStationName,
+    _In_opt_ PPH_STRING DesktopName
+)
+{
+    WeeRefEnsureDesktopName(Desktop, &DesktopName);
+    if (!DesktopWindow && WeeCompareDesktopsOnSameWinSta(Desktop, PhGetString(DesktopName), WeeCurrentDesktop, PhGetString(WeeCurrentDesktopName)))
+    {
+        DesktopWindow = GetDesktopWindow();
+    }
+
+    PWEE_WINDOW_NODE desktopNode = (PWEE_WINDOW_NODE)WeeAddDesktopNode(&Context->TreeContext, DesktopWindow, SessionId, WindowStationName, DesktopName);
+    if (DesktopWindow)
+    {
+        WeepAddChildWindows(Context, desktopNode, desktopNode->WindowHandle, SessionId, WindowStationName, DesktopName, NULL, NULL);
+        WepFillWindowInfo(&Context->TreeContext, desktopNode);
+    }
+    else
+    {
+        WeepAddDesktopWindows(Context, &desktopNode->BaseNode, Desktop, SessionId, WindowStationName, DesktopName);
+    }
+
+    desktopNode->BaseNode.Flags |= WEENFLG_HAS_CHILDREN;
+    if (ParentNode)
+    {
+        desktopNode->BaseNode.Parent = ParentNode;
+        PhAddItemList(ParentNode->Children, desktopNode);
+        ParentNode->Node.Expanded = TRUE;
+        ParentNode->Flags |= WEENFLG_HAS_CHILDREN;
+    }
+
+    if (DesktopName) PhDereferenceObject(DesktopName);
+}
+
+static BOOL CALLBACK WeepEnumDesktopsProc(
+    _In_ LPWSTR lpszDesktop,
+    _In_ LPARAM lParam
+    )
+{
+    PWINDOWS_ENUM_CONTEXT enumContext = (PWINDOWS_ENUM_CONTEXT)lParam;
+    PPH_STRING desktopName;
+    if (lpszDesktop[0] == '\\')
+        desktopName = PhCreateString(lpszDesktop);
+    else
+        desktopName = PhConcatStrings2(L"\\", lpszDesktop);
+    WeepAddDesktopWithWindows(
+        enumContext->WindowsContext,
+        enumContext->ParentNode,
+        NULL,
+        NULL,
+        enumContext->SessionId,
+        enumContext->WinStaName,
+        desktopName);
+    PhDereferenceObject(desktopName);
+    return TRUE;
+}
+
+VOID WeepAddDesktopsForCurrentWinSta(
+    _In_ PWINDOWS_CONTEXT Context,
+    _In_ PWEE_BASE_NODE ParentNode
+)
+{
+    WINDOWS_ENUM_CONTEXT enumContext = { 0 };
+    enumContext.WindowsContext = Context;
+    enumContext.SessionId = NtCurrentPeb()->SessionId;
+    enumContext.WinStaName = WeeCurrentWindowStationName;
+    enumContext.ParentNode = ParentNode;
+    if (!EnumDesktops(WeeCurrentWindowStation, WeepEnumDesktopsProc, (LPARAM)&enumContext))
+    {
+        WeepAddDesktopWithWindows(
+            Context,
+            ParentNode,
+            WeeCurrentDesktop,
+            GetDesktopWindow(),
+            NtCurrentPeb()->SessionId,
+            WeeCurrentWindowStationName,
+            WeeCurrentDesktopName);
     }
 }
 
@@ -341,37 +444,18 @@ VOID WepRefreshWindows(
     {
     case WeWindowSelectorAll:
         {
-            PWEE_WINDOW_NODE desktopNode;
-            HDESK desktop = GetThreadDesktop(GetCurrentThreadId());
-            PPH_STRING desktopName;
-            if (!NT_SUCCESS(WeeGetObjectName(desktop, &desktopName)))
-                desktopName = PhCreateString(L"(Unknown)");
-            HWINSTA winSta = GetProcessWindowStation();
-            PPH_STRING winStaName;
-            if (!NT_SUCCESS(WeeGetObjectName(winSta, &winStaName)))
-                winStaName = PhCreateString(L"(Unknown)");
-            DWORD sessionId = WTSGetActiveConsoleSessionId();
+            DWORD sessionId;
+            sessionId = NtCurrentPeb()->SessionId;
             PWEE_SESSION_NODE sessionNode = WeeAddSessionNode(&Context->TreeContext, sessionId);
-            PWEE_WINSTA_NODE winstaNode = WeeAddWinStaNode(&Context->TreeContext, winStaName);
+            PWEE_WINSTA_NODE winstaNode = WeeAddWinStaNode(&Context->TreeContext, WeeCurrentWindowStationName);
             winstaNode->BaseNode.Parent = &sessionNode->BaseNode;
             PhAddItemList(sessionNode->BaseNode.Children, winstaNode);
             sessionNode->BaseNode.Node.Expanded = TRUE;
 
-            desktopNode = (PWEE_WINDOW_NODE)WeeAddDesktopNode(&Context->TreeContext, GetDesktopWindow(), sessionId, winStaName, desktopName);
-            WepFillWindowInfo(&Context->TreeContext, desktopNode);
-
-            desktopNode->BaseNode.Parent = &winstaNode->BaseNode;
-            PhAddItemList(winstaNode->BaseNode.Children, desktopNode);
-            winstaNode->BaseNode.Node.Expanded = TRUE;
+            WeepAddDesktopsForCurrentWinSta(Context, &winstaNode->BaseNode);
 
             PhAddItemList(Context->TreeContext.NodeRootList, sessionNode);
 
-            WeepAddChildWindows(Context, desktopNode, desktopNode->WindowHandle, sessionId, winStaName, desktopName, NULL, NULL);
-            PhDereferenceObject(winStaName);
-            PhDereferenceObject(desktopName);
-
-            desktopNode->BaseNode.Flags |= WEENFLG_HAS_CHILDREN;
-            winstaNode->BaseNode.Flags |= WEENFLG_HAS_CHILDREN;
             sessionNode->BaseNode.Flags |= WEENFLG_HAS_CHILDREN;
         }
         break;
@@ -383,11 +467,6 @@ VOID WepRefreshWindows(
     case WeWindowSelectorProcess:
         {
             //WepAddChildWindows(Context, NULL, GetDesktopWindow(), Context->Selector.Process.ProcessId, NULL);
-        }
-        break;
-    case WeWindowSelectorDesktop:
-        {
-            //WepAddDesktopWindows(Context, Context->Selector.Desktop.DesktopName->Buffer);
         }
         break;
     }
@@ -420,11 +499,6 @@ PPH_STRING WepGetWindowTitleForSelector(
             clientId.UniqueThread = NULL;
 
             return PhConcatStrings2(L"Windows - ", PH_AUTO_T(PH_STRING, PhGetClientIdName(&clientId))->Buffer);
-        }
-        break;
-    case WeWindowSelectorDesktop:
-        {
-            return PhFormatString(L"Windows - Desktop \"%s\"", Selector->Desktop.DesktopName->Buffer);
         }
         break;
     default:

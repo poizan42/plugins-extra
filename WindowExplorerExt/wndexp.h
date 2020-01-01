@@ -31,7 +31,6 @@ typedef enum _WE_WINDOW_SELECTOR_TYPE
     WeWindowSelectorAll,
     WeWindowSelectorProcess,
     WeWindowSelectorThread,
-    WeWindowSelectorDesktop
 } WE_WINDOW_SELECTOR_TYPE;
 
 typedef struct _WE_WINDOW_SELECTOR
@@ -47,10 +46,6 @@ typedef struct _WE_WINDOW_SELECTOR
         {
             HANDLE ThreadId;
         } Thread;
-        struct
-        {
-            PPH_STRING DesktopName;
-        } Desktop;
     };
 } WE_WINDOW_SELECTOR, *PWE_WINDOW_SELECTOR;
 
@@ -71,6 +66,12 @@ VOID WeShowWindowProperties(
     _In_ HWND WindowHandle
     );
 
+// globals
+extern HDESK WeeCurrentDesktop;
+extern PPH_STRING WeeCurrentDesktopName;
+extern HWINSTA WeeCurrentWindowStation;
+extern PPH_STRING WeeCurrentWindowStationName;
+
 // utils
 
 #define WE_PhMainWndHandle (*(HWND *)WeGetProcedureAddress("PhMainWndHandle"))
@@ -83,6 +84,15 @@ PVOID WeGetProcedureAddress(
 
 NTSTATUS WeeGetObjectName(_In_ HANDLE hObj, _Out_ PPH_STRING* ObjectName);
 //PPH_STRING WeeGetUserObjectName(_In_ HANDLE hObj);
+void WeeRefEnsureDesktopName(_In_opt_ HDESK Desktop, _Inout_ PPH_STRING* DesktopName);
+void WeeRefEnsureObjectName(_In_ HANDLE Object, _Inout_ PPH_STRING* ObjectName);
+PH_STRINGREF WeeGetBareDesktopName(_In_ PPH_STRING DesktopName);
+PWSTR WeeGetBareDesktopNameZ(_In_ PWSTR DesktopName);
+BOOL WeeCompareDesktopsOnSameWinSta(
+    _In_opt_ HDESK Desktop1,
+    _In_opt_ PWSTR Desktop1Name,
+    _In_opt_ HDESK Desktop2,
+    _In_opt_ PWSTR Desktop2Name);
 
 VOID WeInvertWindowBorder(
     _In_ HWND hWnd
