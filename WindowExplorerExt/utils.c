@@ -239,7 +239,10 @@ HWND WeeGetMessageRootWindow(
      * from the desktop window since csrss allocates them right after each other,
      * Try 8 windows each direction. */
     WCHAR className[8];
-    for (HWND tryWnd = PTR_SUB_OFFSET(DesktopWindow, 16); tryWnd <= (HWND)PTR_ADD_OFFSET(DesktopWindow, 16); tryWnd = PTR_ADD_OFFSET(tryWnd, 2))
+    ULONG_PTR ulDskWnd = (ULONG_PTR)DesktopWindow;
+    HWND minWnd = ulDskWnd >= 18 ? (HWND)(ulDskWnd - 16) : (HWND)2;
+    HWND maxWnd = ulDskWnd <= ULONG_MAX - 18 ? (HWND)(ulDskWnd + 16) : (HWND)2;
+    for (HWND tryWnd = minWnd; tryWnd <= maxWnd; tryWnd = PTR_ADD_OFFSET(tryWnd, 2))
     {
         if (GetClassName(tryWnd, className, 8) == 7 && memcmp(className, L"Message", 7*sizeof(WCHAR)) == 0)
             return tryWnd;
