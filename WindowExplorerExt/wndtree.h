@@ -66,10 +66,11 @@ typedef struct _WEE_WINDOW_NODE
 
 struct _WEE_DESKTOP_NODE
 {
-    WEE_WINDOW_NODE RootWindowNode;
-    PPH_STRING FirstColumnText;
-    ULONG FirstColumnId;
-    //PPH_STRING DesktopName;
+    WEE_BASE_NODE BaseNode;
+    ULONG SessionId;
+    PPH_STRING WinStationName;
+    PPH_STRING DesktopName;
+    PPH_STRING DisplayString;
 };
 
 typedef struct _WE_WINDOW_TREE_CONTEXT

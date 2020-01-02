@@ -359,16 +359,23 @@ WeepAddDesktopWithWindows(
 )
 {
     WeeRefEnsureDesktopName(Desktop, &DesktopName);
-    if (!DesktopWindow && WeeCompareDesktopsOnSameWinSta(Desktop, PhGetString(DesktopName), WeeCurrentDesktop, PhGetString(WeeCurrentDesktopName)))
+    BOOL isCurrentDesktop = WeeCompareDesktopsOnSameWinSta(Desktop, PhGetString(DesktopName), WeeCurrentDesktop, PhGetString(WeeCurrentDesktopName));
+    if (!DesktopWindow && isCurrentDesktop)
     {
         DesktopWindow = GetDesktopWindow();
     }
 
-    PWEE_WINDOW_NODE desktopNode = (PWEE_WINDOW_NODE)WeeAddDesktopNode(&Context->TreeContext, DesktopWindow, SessionId, WindowStationName, DesktopName);
+    PWEE_DESKTOP_NODE desktopNode = (PWEE_DESKTOP_NODE)WeeAddDesktopNode(&Context->TreeContext, DesktopWindow, SessionId, WindowStationName, DesktopName);
     if (DesktopWindow)
     {
-        WeepAddChildWindows(Context, desktopNode, desktopNode->WindowHandle, SessionId, WindowStationName, DesktopName, NULL, NULL);
-        WepFillWindowInfo(&Context->TreeContext, desktopNode);
+        PWEE_WINDOW_NODE desktopWndNode = WeepAddChildWindowNode(&Context->TreeContext, &desktopNode->BaseNode, DesktopWindow, SessionId, WindowStationName, DesktopName);
+        WeepAddChildWindows(Context, desktopWndNode, DesktopWindow, SessionId, WindowStationName, DesktopName, NULL, NULL);
+        HWND messageWnd = WeeGetMessageRootWindow(DesktopWindow, isCurrentDesktop);
+        if (messageWnd)
+        {
+            PWEE_WINDOW_NODE messageWndNode = WeepAddChildWindowNode(&Context->TreeContext, &desktopNode->BaseNode, messageWnd, SessionId, WindowStationName, DesktopName);
+            WeepAddChildWindows(Context, messageWndNode, messageWnd, SessionId, WindowStationName, DesktopName, NULL, NULL);
+        }
     }
     else
     {

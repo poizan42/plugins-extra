@@ -94,6 +94,10 @@ BOOL WeeCompareDesktopsOnSameWinSta(
     _In_opt_ HDESK Desktop2,
     _In_opt_ PWSTR Desktop2Name);
 
+HWND WeeGetMessageRootWindow(
+    _In_opt_ HWND DesktopWindow,
+    _In_ BOOL IsCurrentDesktop);
+
 VOID WeInvertWindowBorder(
     _In_ HWND hWnd
     );

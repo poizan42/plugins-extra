@@ -216,6 +216,37 @@ clean:
     return ret;
 }
 
+HWND WeeGetMessageRootWindow(
+    _In_opt_ HWND DesktopWindow,
+    _In_ BOOL IsCurrentDesktop)
+{
+    if (IsCurrentDesktop)
+    {
+        HWND firstMsgWnd, msgRoot;
+        firstMsgWnd = FindWindowEx(HWND_MESSAGE, NULL, NULL, NULL);
+        if (firstMsgWnd)
+        {
+            msgRoot = GetAncestor(firstMsgWnd, GA_PARENT);
+            if (msgRoot)
+                return msgRoot;
+        }
+    }
+    if (IsCurrentDesktop && !DesktopWindow)
+        DesktopWindow = GetDesktopWindow();
+    if (!DesktopWindow)
+        return NULL;
+    /* We can't search directly for the Message-only root window, but we can try some heuristic to find it
+     * from the desktop window since csrss allocates them right after each other,
+     * Try 8 windows each direction. */
+    WCHAR className[8];
+    for (HWND tryWnd = PTR_SUB_OFFSET(DesktopWindow, 16); tryWnd <= (HWND)PTR_ADD_OFFSET(DesktopWindow, 16); tryWnd = PTR_ADD_OFFSET(tryWnd, 2))
+    {
+        if (GetClassName(tryWnd, className, 8) == 7 && memcmp(className, L"Message", 7*sizeof(WCHAR)) == 0)
+            return tryWnd;
+    }
+    return NULL;
+}
+
 VOID WeInvertWindowBorder(
     _In_ HWND hWnd
     )

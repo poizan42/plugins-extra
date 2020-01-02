@@ -219,6 +219,7 @@ BOOLEAN WeepBaseNodeHashtableEqualFunction(
         return FALSE;
 
     PWEE_WINSTA_NODE winstaNode1, winstaNode2;
+    PWEE_DESKTOP_NODE desktopNode1, desktopNode2;
     PWEE_WINDOW_NODE windowNode1, windowNode2;
 
     switch (node1->Kind)
@@ -230,13 +231,17 @@ BOOLEAN WeepBaseNodeHashtableEqualFunction(
         winstaNode2 = (PWEE_WINSTA_NODE)node2;
         return PhEqualString(winstaNode1->WinStationName, winstaNode2->WinStationName, FALSE);
     case WEENKND_DESKTOP:
+        desktopNode1 = (PWEE_DESKTOP_NODE)node1;
+        desktopNode2 = (PWEE_DESKTOP_NODE)node2;
+        return desktopNode1->SessionId == desktopNode2->SessionId &&
+            PhEqualString(desktopNode1->DesktopName, desktopNode2->DesktopName, FALSE) &&
+            PhEqualString(desktopNode1->WinStationName, desktopNode2->WinStationName, FALSE);
     case WEENKND_WINDOW:
         windowNode1 = (PWEE_WINDOW_NODE)node1;
         windowNode2 = (PWEE_WINDOW_NODE)node2;
         return windowNode1->SessionId == windowNode2->SessionId &&
             windowNode1->WindowHandle == windowNode2->WindowHandle &&
-            PhEqualString(windowNode1->WinStationName, windowNode2->WinStationName, FALSE) &&
-            PhEqualString(windowNode1->DesktopName, windowNode2->DesktopName, FALSE);
+            PhEqualString(windowNode1->WinStationName, windowNode2->WinStationName, FALSE);
     default:
         return FALSE;
     }
@@ -249,6 +254,7 @@ ULONG WeepBaseNodeHashtableHashFunction(
 {
     PWEE_WINDOW_NODE wndNode;
     PWEE_WINSTA_NODE winstaNode;
+    PWEE_DESKTOP_NODE desktopNode;
     PWEE_SESSION_NODE sessionNode;
     PWEE_BASE_NODE node = *(PWEE_BASE_NODE*)Entry;
     switch (node->Kind)
@@ -260,6 +266,9 @@ ULONG WeepBaseNodeHashtableHashFunction(
         winstaNode = (PWEE_WINSTA_NODE)node;
         return PhHashStringRef(&winstaNode->WinStationName->sr, FALSE);
     case WEENKND_DESKTOP:
+        desktopNode = (PWEE_DESKTOP_NODE)node;
+        return WeeHashPair(PhHashStringRef(&desktopNode->WinStationName->sr, FALSE),
+            PhHashStringRef(&desktopNode->WinStationName->sr, FALSE));
     case WEENKND_WINDOW:
         wndNode = (PWEE_WINDOW_NODE)node;
         return WeeHashPair(PhHashIntPtr((ULONG_PTR)wndNode->WindowHandle),
@@ -269,9 +278,7 @@ ULONG WeepBaseNodeHashtableHashFunction(
     }
 }
 
-PWEE_BASE_NODE WeepAllocBaseNode(
-    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ WEE_NODE_KIND NodeKind)
+PWEE_BASE_NODE WeepCreateBaseNode(_In_ WEE_NODE_KIND NodeKind)
 {
     size_t nodeSize;
     switch (NodeKind)
@@ -318,7 +325,7 @@ PWEE_SESSION_NODE WeeAddSessionNode(
     _In_ DWORD SessionId
 )
 {
-    PWEE_SESSION_NODE sessionNode = (PWEE_SESSION_NODE)WeepAllocBaseNode(Context, WEENKND_SESSION);
+    PWEE_SESSION_NODE sessionNode = (PWEE_SESSION_NODE)WeepCreateBaseNode(WEENKND_SESSION);
     sessionNode->SessionId = SessionId;
     sessionNode->SessionIdString = PhFormatString(L"Session %d", SessionId);
 
@@ -332,7 +339,7 @@ PWEE_WINSTA_NODE WeeAddWinStaNode(
     _In_ PPH_STRING WinStationName
 )
 {
-    PWEE_WINSTA_NODE winstaNode = (PWEE_WINSTA_NODE)WeepAllocBaseNode(Context, WEENKND_WINSTA);
+    PWEE_WINSTA_NODE winstaNode = (PWEE_WINSTA_NODE)WeepCreateBaseNode(WEENKND_WINSTA);
     PhReferenceObject(WinStationName);
     winstaNode->WinStationName = WinStationName;
 
@@ -341,34 +348,25 @@ PWEE_WINSTA_NODE WeeAddWinStaNode(
     return winstaNode;
 }
 
-PWEE_WINDOW_NODE WeepAddWindowOrDesktopNode(
-    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
+PWEE_DESKTOP_NODE WeeCreateDesktopNode(
     _In_opt_ HANDLE WindowHandle,
     _In_ DWORD SessionId,
     _In_ PPH_STRING WinStaName,
-    _In_ PPH_STRING DesktopName,
-    _In_ WEE_NODE_KIND nodeKind
+    _In_ PPH_STRING DesktopName
 )
 {
-    PWEE_WINDOW_NODE windowNode = (PWEE_WINDOW_NODE)WeepAllocBaseNode(Context, nodeKind);
-
-    windowNode->WindowHandle = WindowHandle;
-    windowNode->SessionId = SessionId;
+    PWEE_DESKTOP_NODE deskNode = (PWEE_DESKTOP_NODE)WeepCreateBaseNode(WEENKND_DESKTOP);
+    deskNode->SessionId = SessionId;
     PhReferenceObject(WinStaName);
-    windowNode->WinStationName = WinStaName;
+    deskNode->WinStationName = WinStaName;
     PhReferenceObject(DesktopName);
-    windowNode->DesktopName = DesktopName;
-
-    WeepAddBaseNode(Context, &windowNode->BaseNode);
-
-    //if (Context->FilterSupport.FilterList)
-    //   windowNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &windowNode->Node);
-    //
-    //TreeNew_NodesStructured(Context->TreeNewHandle);
-
-    return windowNode;
+    deskNode->DesktopName = DesktopName;
+    deskNode->DisplayString = PhFormatString(
+        L"Desktop %ws%ws",
+        PhGetString(WinStaName),
+        PhGetString(DesktopName));
+    return deskNode;
 }
-
 
 PWEE_DESKTOP_NODE WeeAddDesktopNode(
     _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
@@ -378,10 +376,38 @@ PWEE_DESKTOP_NODE WeeAddDesktopNode(
     _In_ PPH_STRING DesktopName
     )
 {
-    PWEE_DESKTOP_NODE deskNode = (PWEE_DESKTOP_NODE)WeepAddWindowOrDesktopNode(
-        Context, WindowHandle, SessionId, WinStaName, DesktopName, WEENKND_DESKTOP);
-    deskNode->FirstColumnId = MAXULONG32;
+    PWEE_DESKTOP_NODE deskNode = WeeCreateDesktopNode(
+        WindowHandle,
+        SessionId,
+        WinStaName,
+        DesktopName
+    );
+    WeepAddBaseNode(Context, &deskNode->BaseNode);
     return deskNode;
+}
+
+PWEE_WINDOW_NODE WeeCreateWindowNode(
+    _In_ HANDLE WindowHandle,
+    _In_ DWORD SessionId,
+    _In_ PPH_STRING WinStaName,
+    _In_ PPH_STRING DesktopName
+)
+{
+    PWEE_WINDOW_NODE windowNode = (PWEE_WINDOW_NODE)WeepCreateBaseNode(WEENKND_WINDOW);
+
+    windowNode->WindowHandle = WindowHandle;
+    windowNode->SessionId = SessionId;
+    PhReferenceObject(WinStaName);
+    windowNode->WinStationName = WinStaName;
+    PhReferenceObject(DesktopName);
+    windowNode->DesktopName = DesktopName;
+
+    //if (Context->FilterSupport.FilterList)
+    //   windowNode->Node.Visible = PhApplyTreeNewFiltersToNode(&Context->FilterSupport, &windowNode->Node);
+    //
+    //TreeNew_NodesStructured(Context->TreeNewHandle);
+
+    return windowNode;
 }
 
 PWEE_WINDOW_NODE WeeAddWindowNode(
@@ -392,8 +418,10 @@ PWEE_WINDOW_NODE WeeAddWindowNode(
     _In_ PPH_STRING DesktopName
     )
 {
-    return WeepAddWindowOrDesktopNode(
-        Context, WindowHandle, SessionId, WinStaName, DesktopName, WEENKND_WINDOW);
+    PWEE_WINDOW_NODE windowNode = WeeCreateWindowNode(
+        WindowHandle, SessionId, WinStaName, DesktopName);
+    WeepAddBaseNode(Context, &windowNode->BaseNode);
+    return windowNode;
 }
 
 PWEE_WINDOW_NODE WeFindWindowNode(
@@ -459,9 +487,11 @@ VOID WepDestroyBaseNode(
     case WEENKND_DESKTOP:
         {
             PWEE_DESKTOP_NODE deskNode = (PWEE_DESKTOP_NODE)Node;
-            if (deskNode->FirstColumnText) PhDereferenceObject(deskNode->FirstColumnText);
+            if (deskNode->WinStationName) PhDereferenceObject(deskNode->WinStationName);
+            if (deskNode->DesktopName) PhDereferenceObject(deskNode->DesktopName);
+            if (deskNode->DisplayString) PhDereferenceObject(deskNode->DisplayString);
         }
-    // Fallthrough
+        break;
     case WEENKND_WINDOW:
         {
             PWEE_WINDOW_NODE windowNode = (PWEE_WINDOW_NODE)Node;
@@ -623,20 +653,26 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
             switch (node->Kind)
             {
             case WEENKND_SESSION:
-                if (TreeNew_GetFirstColumn(context->TreeNewHandle)->Id == getCellText->Id)
+                if (isFirstColumn)
                 {
                     PWEE_SESSION_NODE sessionNode = (PWEE_SESSION_NODE)node;
                     getCellText->Text = PhGetStringRef(sessionNode->SessionIdString);
                 }
                 break;
             case WEENKND_WINSTA:
-                if (TreeNew_GetFirstColumn(context->TreeNewHandle)->Id == getCellText->Id)
+                if (isFirstColumn)
                 {
                     PWEE_WINSTA_NODE winstaNode = (PWEE_WINSTA_NODE)node;
                     getCellText->Text = PhGetStringRef(winstaNode->WinStationName);
                 }
                 break;
             case WEENKND_DESKTOP:
+                if (isFirstColumn)
+                {
+                    PWEE_DESKTOP_NODE deskNode = (PWEE_DESKTOP_NODE)node;
+                    getCellText->Text = PhGetStringRef(deskNode->DisplayString);
+                }
+                break;
             case WEENKND_WINDOW:
                 wndNode = (PWEE_WINDOW_NODE)node;
                 switch (getCellText->Id)
@@ -662,29 +698,7 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                 default:
                     return FALSE;
                 }
-                if (node->Kind == WEENKND_DESKTOP && isFirstColumn)
-                {
-                    PWEE_DESKTOP_NODE deskNode = (PWEE_DESKTOP_NODE)node;
-                    if (deskNode->FirstColumnId != firstColumnId)
-                    {
-                        PPH_STRING newColumnText;
-                        if (getCellText->Text.Length > 0)
-                            newColumnText = PhFormatString(L"%ws (Desktop %ws%ws)",
-                                getCellText->Text.Buffer, PhGetString(wndNode->WinStationName), PhGetString(wndNode->DesktopName));
-                        else
-                            newColumnText = PhFormatString(L"Desktop %ws%ws",
-                                PhGetString(wndNode->WinStationName), PhGetString(wndNode->DesktopName));
-                        
-                        PhMoveReference(&deskNode->FirstColumnText, newColumnText);
-                    }
-                    getCellText->Text = PhGetStringRef(deskNode->FirstColumnText);
-                }
-                else if (node->Kind == WEENKND_WINDOW)
-                {
-                    // Desktop nodes changes text based on column order, so only cache non-desktop nodes.
-                    getCellText->Flags = TN_CACHE;
-                }
-
+                getCellText->Flags = TN_CACHE;
                 break;
             default:
                 return FALSE;
@@ -785,7 +799,7 @@ PWEE_WINDOW_NODE WeeGetSelectedWindowNode(
     )
 {
     PWEE_BASE_NODE node = WeeGetSelectedBaseNode(Context);
-    if (!node || (node->Kind != WEENKND_WINDOW && node->Kind != WEENKND_DESKTOP))
+    if (!node || (node->Kind != WEENKND_WINDOW))
         return NULL;
     PWEE_WINDOW_NODE windowNode = (PWEE_WINDOW_NODE)node;
     return windowNode->WindowHandle ? windowNode : NULL;
@@ -825,7 +839,7 @@ VOID WeeGetSelectedWindowNodes(
     {
         PWEE_BASE_NODE node = Context->NodeList->Items[i];
 
-        if (node->Node.Selected && node->Kind == WEENKND_WINDOW || node->Kind == WEENKND_DESKTOP)
+        if (node->Node.Selected && node->Kind == WEENKND_WINDOW)
         {
             PWEE_WINDOW_NODE windowNode = (PWEE_WINDOW_NODE)node;
             if (windowNode->WindowHandle)
