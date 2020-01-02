@@ -27,6 +27,9 @@
     <ClInclude Include="wndtree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="wndnode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WindowExplorerExtPlugin.rc">
@@ -50,6 +53,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="wee_main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wndnode.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2011 wj32
  * Copyright (C) 2017 dmex
-
+ * Copyright (C) 2020 poizan42
  *
  * This file is part of Process Hacker.
  *

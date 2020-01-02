@@ -1,5 +1,5 @@
 /*
- * Process Hacker Window Explorer -
+ * Process Hacker Window Explorer Extended -
  *   window properties
  *
  * Copyright (C) 2011 wj32
