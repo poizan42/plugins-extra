@@ -244,7 +244,7 @@ HWND WeeGetMessageRootWindow(
     HWND maxWnd = ulDskWnd <= ULONG_MAX - 18 ? (HWND)(ulDskWnd + 16) : (HWND)2;
     for (HWND tryWnd = minWnd; tryWnd <= maxWnd; tryWnd = PTR_ADD_OFFSET(tryWnd, 2))
     {
-        if (GetClassName(tryWnd, className, 8) == 7 && memcmp(className, L"Message", 7*sizeof(WCHAR)) == 0)
+        if (tryWnd != DesktopWindow && GetClassName(tryWnd, className, 8) == 7 && memcmp(className, L"Message", 7*sizeof(WCHAR)) == 0)
             return tryWnd;
     }
     return NULL;
