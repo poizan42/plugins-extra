@@ -106,6 +106,7 @@
   <ItemGroup>
     <ClInclude Include="prpsh.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="wnddlg.h" />
     <ClInclude Include="wndexp.h" />
     <ClInclude Include="wndnode.h" />
     <ClInclude Include="wndtree.h" />
@@ -118,6 +119,7 @@
     <ClCompile Include="prpsh.c" />
     <ClCompile Include="utils.c" />
     <ClCompile Include="wnddlg.c" />
+    <ClCompile Include="wndenum.c" />
     <ClCompile Include="wndnode.c" />
     <ClCompile Include="wndprp.c" />
     <ClCompile Include="wndtree.c" />

@@ -30,6 +30,9 @@
     <ClInclude Include="wndnode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="wnddlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="WindowExplorerExtPlugin.rc">
@@ -56,6 +59,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="wndnode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wndenum.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

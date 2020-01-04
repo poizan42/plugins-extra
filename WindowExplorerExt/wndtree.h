@@ -37,10 +37,10 @@ VOID WeDeleteWindowTree(
     _In_ PWE_WINDOW_TREE_CONTEXT Context
     );
 
-PWEE_WINDOW_NODE WeFindWindowNode(
+/*PWEE_WINDOW_NODE WeFindWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_ HWND WindowHandle
-    );
+    );*/
 
 VOID WeClearWindowTree(
     _In_ PWE_WINDOW_TREE_CONTEXT Context

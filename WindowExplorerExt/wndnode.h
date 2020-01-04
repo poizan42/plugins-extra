@@ -127,6 +127,13 @@ PWEE_BASE_NODE WeeCreateLoadingNode();
 
 PWEE_BASE_NODE WeeAddLoadingNode(_Inout_ PWE_WINDOW_TREE_CONTEXT Context);
 
+void WeeAddNodes(
+    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
+    _Inout_opt_ PWEE_BASE_NODE ParentNode,
+    _In_reads_(Count) PWEE_BASE_NODE Nodes[],
+    ULONG Count
+);
+
 VOID WeeRemoveBaseNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_ PWEE_BASE_NODE BaseNode

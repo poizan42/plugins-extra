@@ -195,7 +195,7 @@ VOID WeDeleteWindowTree(
     PhDereferenceObject(Context->NodeRootList);
 }
 
-PWEE_WINDOW_NODE WeFindWindowNode(
+/*PWEE_WINDOW_NODE WeFindWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _In_ HWND WindowHandle
     )
@@ -215,7 +215,7 @@ PWEE_WINDOW_NODE WeFindWindowNode(
         return *windowNode;
     else
         return NULL;
-}
+}*/
 
 #define SORT_FUNCTION(Column) WepWindowTreeNewCompare##Column
 
@@ -412,6 +412,11 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
                 }
                 getCellText->Flags = TN_CACHE;
                 break;
+            case WEENKND_LOADING:
+                if (isFirstColumn)
+                {
+                    PhInitializeStringRef(&getCellText->Text, L"Loading ...");
+                }
             default:
                 return FALSE;
             }

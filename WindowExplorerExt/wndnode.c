@@ -141,6 +141,24 @@ void WeepAddBaseNode(
     PhAddItemList(Context->NodeList, node);
 }
 
+void WeeAddNodes(
+    _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
+    _Inout_opt_ PWEE_BASE_NODE ParentNode,
+    _In_reads_(Count) PWEE_BASE_NODE Nodes[],
+    ULONG Count
+)
+{
+    for (size_t i = 0; i < Count; i++)
+    {
+        PWEE_BASE_NODE node = Nodes[i];
+        WeepAddBaseNode(Context, node);
+        if (node->Children->Count > 0)
+            WeeAddNodes(Context, NULL, (PWEE_BASE_NODE*)node->Children->Items, node->Children->Count);
+    }
+    if (ParentNode)
+        PhAddItemsList(ParentNode->Children, Nodes, Count);
+}
+
 PWEE_SESSION_NODE WeeCreateSessionNode(
     _In_ DWORD SessionId
 )
